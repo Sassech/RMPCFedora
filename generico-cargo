@@ -1,0 +1,33 @@
+# Imagen base moderna de Fedora
+FROM fedora:latest
+
+# Argumentos configurables
+ARG REPO_URL=https://github.com/mierak/rmpc.git
+ARG BRANCH=master
+
+# Instalar herramientas necesarias
+RUN dnf install -y \
+    rust cargo git rpm-build rpmdevtools openssl-devel gcc make \
+    && dnf clean all
+
+# Instalar cargo-rpm para empaquetado directo
+RUN cargo install cargo-rpm
+
+# Directorio de trabajo
+WORKDIR /build
+
+# Clonar el repositorio especificado
+RUN git clone --branch ${BRANCH} ${REPO_URL} app
+
+WORKDIR /build/app
+
+# Generar configuración y compilar el paquete
+RUN cargo rpm init && cargo rpm build
+
+# Crear carpeta de salida y mover el rpm generado
+RUN mkdir -p /output && cp target/release/rpmbuild/RPMS/x86_64/*.rpm /output/
+
+# Configurar punto de salida
+VOLUME ["/output"]
+
+CMD ["bash", "-c", "cp /output/*.rpm /final/"]
