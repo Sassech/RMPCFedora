@@ -38,13 +38,13 @@ rmpc
 
 ```bash
 # Clean Docker environment (optional but recommended)
-sudo docker system prune -a --volumes -f
+docker system prune -a --volumes -f
 
 # Build the Docker image
-sudo docker build -t rmpc-rpm .
+docker build -t rmpc-rpm .
 
 # Extract the generated RPM package
-sudo docker run --rm -v $(pwd):/output rmpc-rpm
+docker run --rm -v $(pwd):/output rmpc-rpm
 ```
 
 ### Method 2: Generic Build (cargo-rpm)
