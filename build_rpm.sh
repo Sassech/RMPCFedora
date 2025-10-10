@@ -405,9 +405,9 @@ URL:            https://github.com/mierak/rmpc
 Source0:        %{name}-%{version}.tar.gz
 BuildArch:      x86_64
 # Music Player Daemon
-Requires:       mpd
+Requires: mpd >= 0.23
 # Command line client for MPD
-Requires:       mpc
+Requires: mpc >= 0.34
 
 %description
 rmpc is a fast and modern MPD client for the terminal, inspired by ncmpcpp.
