@@ -25,7 +25,7 @@ echo "=== Setting up MPD and rmpc for $USER ==="
 
 # Create music directory
 MUSIC_DIR="$HOME/Music"
-mkdir -p "$MUSIC_DIR"
+# mkdir -p "$MUSIC_DIR"
 mkdir -p "$HOME/.config/mpd/playlists"
 echo "✓ Music directory: $MUSIC_DIR"
 
