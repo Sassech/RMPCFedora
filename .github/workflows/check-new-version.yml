@@ -1,0 +1,50 @@
+name: Check for New RMPC Version
+
+on:
+  schedule:
+    # Check Monthly at 00:00 UTC on day 1
+    - cron: "0 0 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest RMPC version
+        id: rmpc
+        run: |
+          RMPC_REPO="mierak/rmpc"
+          LATEST_TAG=$(curl -sL "https://api.github.com/repos/$RMPC_REPO/releases/latest" | jq -r '.tag_name')
+          VERSION=${LATEST_TAG#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest RMPC version: $VERSION"
+
+      - name: Check if release exists
+        id: check
+        run: |
+          if gh release view "v${{ steps.rmpc.outputs.version }}" > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Release already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "New version detected!"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Trigger build workflow
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          gh workflow run build-release.yml -f version="${{ steps.rmpc.outputs.version }}" -f tag="${{ steps.rmpc.outputs.tag }}"
+          echo "Build workflow triggered for version ${{ steps.rmpc.outputs.version }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

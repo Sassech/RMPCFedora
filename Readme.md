@@ -1,154 +1,126 @@
-# 🎵 RMPC - RPM Package Builder
+# 🎵 RMPC RPM Builder for Fedora
 
-Automated RPM package builder for [rmpc](https://github.com/mierak/rmpc) (Rust Music Player Client) with Docker support.
+Automated CI/CD pipeline for building [rmpc](https://github.com/mierak/rmpc) (Rust Music Player Client) RPM packages using GitHub Actions and Podman.
 
-## 🚀 Quick Start
+## 📦 Installation
 
-### Prerequisites
+### From Releases (Recommended)
 
-- Docker installed and running
-- `sudo` privileges (for Docker operations)
-
-### Install the Package
+Download the latest RPM from [Releases](https://github.com/Sassech/RMPCFedora/releases):
 
 ```bash
-# Install the RPM package
+# Install the package
 sudo dnf install ./rmpc-*.rpm
 
-# Run the setup script to configure MPD for your user
+# Configure MPD for your user
 rmpc-setup
 
 # Launch rmpc
 rmpc
 ```
 
-## 📦 Build Methods
+## 🤖 CI/CD Pipeline
 
-### Method 1: Custom Spec Build (Default)
+This repository features automated monthly builds:
 
-**Features:**
+- **Version Check**: Runs on day 1 of each month at 00:00 UTC
+- **Build & Release**: Runs at 02:00 UTC if new version detected
+- **Manual Trigger**: Available via GitHub Actions workflow dispatch
 
-- ✅ Includes MPD (>= 0.23.5) as a dependency
-- ✅ Automatic MPD configuration with `rmpc-setup` script
-- ✅ Full RPM metadata and post-installation hooks
-- ✅ PipeWire audio output configuration
-- ✅ Systemd user service integration
+### Workflows
 
-**Build:**
+1. **check-new-version.yml**: Monitors upstream rmpc releases
+2. **build-release.yml**: Builds RPM with Podman and creates GitHub release
+
+## 🛠️ Manual Build
+
+### With Podman (Recommended)
 
 ```bash
-# Clean Docker environment (optional but recommended)
-docker system prune -a --volumes -f
+# Build container image
+podman build -t rmpc-builder .
 
-# Build the Docker image
+# Run and extract RPM
+mkdir -p output
+podman run --rm -v $(pwd)/output:/output:Z rmpc-builder
+```
+
+### With Docker
+
+```bash
+# Build and extract
 docker build -t rmpc-rpm .
-
-# Extract the generated RPM package
-docker run --rm -v $(pwd):/output rmpc-rpm
+docker run --rm -v $(pwd)/output:/output rmpc-rpm
 ```
 
-### Method 2: Generic Build (cargo-rpm)
-
-A simpler method using `cargo-rpm` for minimal RPM generation.
-
-**Build:**
+### Custom Build
 
 ```bash
-docker build -f generico-cargo -t rpm-builder \
-  --build-arg REPO_URL=https://github.com/mierak/rmpc.git \
-  --build-arg BRANCH=master \
-  .
-docker run --rm -v $(pwd):/final rpm-builder
-```
-
-## 🛠️ What's Included
-
-### rmpc-setup Script
-
-The package includes a setup script that configures:
-
-- Music directory (`~/Music`)
-- MPD configuration file (`~/.config/mpd/mpd.conf`)
-- MPD database and playlist directories
-- PipeWire audio output
-- Systemd user service
-
-Run after installation:
-
-```bash
-rmpc-setup
-```
-
-### MPD Configuration
-
-Default configuration includes:
-
-- Music directory: `~/Music`
-- Bind address: `127.0.0.1:6600`
-- Audio output: PipeWire
-- Auto-update: enabled
-
-## 📁 Project Structure
-
-```
-.
-├── dockerfile             # Main Dockerfile (custom spec method)
-├── generico-cargo         # Dockerfile for cargo-rpm method
-├── build_rpm.sh           # RPM build script with spec generation
-└── Readme.md              # This file
-```
-
-## 🔧 Customization
-
-### Build from Different Branch or Fork
-
-```bash
-sudo docker build -t rmpc-rpm \
+# Build from specific branch or fork
+podman build -t rmpc-builder \
   --build-arg REPO_URL=https://github.com/YOUR_FORK/rmpc.git \
   --build-arg BRANCH=your-branch \
   .
 ```
 
-### Modify Build Script
+## ✨ Features
 
-Edit `build_rpm.sh` to customize:
+- **MPD Integration**: Includes MPD (>= 0.23) as dependency
+- **Automated Setup**: `rmpc-setup` script configures everything
+- **PipeWire Support**: Pre-configured audio output
+- **FIFO Support**: Ready for visualizers (Cava)
+- **Systemd Service**: MPD runs as user service
+- **Custom Config**: Pre-configured rmpc settings
 
-- RPM metadata (version, release, packager info)
-- Dependencies
-- Installation paths
-- Post-installation scripts
+### What rmpc-setup Does
 
-## 📝 Notes
+- Creates music directory (`~/Music`)
+- Generates MPD configuration
+- Sets up PipeWire audio output
+- Creates FIFO for visualizers
+- Configures systemd user service
+- Starts MPD automatically
 
-- Built and tested on Fedora Linux
-- Requires RPM Fusion repositories for some dependencies
-- Uses Rust stable toolchain
-- Default maintainer: Sassech <lainstroop@gmail.com>
+## 📁 Project Structure
+
+```
+.
+├── .github/workflows/     # CI/CD automation
+├── dockerfile             # Podman/Docker build
+├── build_rpm.sh          # RPM build script
+├── generico-cargo        # Alternative cargo-rpm build
+└── Readme.md
+```
 
 ## 🐛 Troubleshooting
 
-### MPD won't start
+**MPD not starting:**
 
 ```bash
-# Check MPD status
 systemctl --user status mpd
-
-# View logs
 journalctl --user -u mpd -f
 ```
 
-### No audio output
+**No audio:**
 
 ```bash
-# Verify PipeWire is running
 systemctl --user status pipewire
-
-# Check audio devices
 pactl list sinks
+```
+
+**Update music database:**
+
+```bash
+mpc update
+mpc ls
 ```
 
 ## 📚 Resources
 
-- [rmpc GitHub Repository](https://github.com/mierak/rmpc)
+- [rmpc upstream](https://github.com/mierak/rmpc)
 - [MPD Documentation](https://www.musicpd.org/doc/html/)
-- [Fedora RPM Packaging Guide](https://docs.fedoraproject.org/en-US/packaging-guidelines/)
+
+---
+
+**Maintainer:** Sassech <<lainstroop@gmail.com>>  
+**Based on:** [rmpc by mierak](https://github.com/mierak/rmpc)

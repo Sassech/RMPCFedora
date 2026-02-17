@@ -1,0 +1,131 @@
+name: Build and Release RMPC RPM
+
+on:
+  schedule:
+    # Run the first day of month at 02:00 UTC (after check-new-version)
+    - cron: "0 2 1 * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "RMPC version to build"
+        required: false
+        type: string
+      tag:
+        description: "RMPC tag to build"
+        required: false
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Determine RMPC version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+            TAG="${{ inputs.tag }}"
+          else
+            # Get latest version from RMPC repository
+            RMPC_REPO="mierak/rmpc"
+            TAG=$(curl -sL "https://api.github.com/repos/$RMPC_REPO/releases/latest" | jq -r '.tag_name')
+            VERSION=${TAG#v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Building RMPC version: $VERSION (tag: $TAG)"
+
+      - name: Build RMPC RPM with Podman
+        run: |
+          mkdir -p output
+          chmod +x build_rpm.sh
+
+          # Build container image
+          podman build -t rmpc-builder \
+            --build-arg BRANCH=${{ steps.version.outputs.tag }} \
+            -f dockerfile .
+
+          # Run container and extract RPM
+          podman run --rm \
+            -v $(pwd)/output:/output:Z \
+            rmpc-builder
+
+      - name: Find built RPM
+        id: rpm
+        run: |
+          RPM_FILE=$(ls output/rmpc-*.rpm 2>/dev/null | head -n 1 || echo "")
+          if [ -z "$RPM_FILE" ]; then
+            echo "Error: No RPM file found in output directory"
+            ls -la output/
+            exit 1
+          fi
+          echo "rpm_file=$RPM_FILE" >> $GITHUB_OUTPUT
+          echo "rpm_name=$(basename $RPM_FILE)" >> $GITHUB_OUTPUT
+          echo "Found RPM: $RPM_FILE"
+
+      - name: Check if release exists
+        id: check_release
+        run: |
+          if gh release view "v${{ steps.version.outputs.version }}" > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create Release
+        if: steps.check_release.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: RMPC ${{ steps.version.outputs.version }}
+          body: |
+            ## RMPC RPM for Fedora
+
+            Automated build of RMPC version `${{ steps.version.outputs.version }}`
+
+            ### Installation
+            ```bash
+            sudo dnf install ${{ steps.rpm.outputs.rpm_name }}
+            ```
+
+            ### Setup
+            After installation, run the setup script:
+            ```bash
+            rmpc-setup
+            ```
+
+            ### Features
+            - Pre-configured MPD and rmpc setup
+            - PipeWire audio output
+            - FIFO support for visualizers (Cava)
+            - Automatic music directory setup
+          files: |
+            ${{ steps.rpm.outputs.rpm_file }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmpc-rpm-${{ steps.version.outputs.version }}
+          path: output/*.rpm
+          retention-days: 30
