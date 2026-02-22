@@ -1,8 +1,6 @@
-# 🎵 RMPC RPM Builder for Fedora
+# RMPC RPM Builder for Fedora
 
-Automated CI/CD pipeline for building [rmpc](https://github.com/mierak/rmpc) (Rust Music Player Client) RPM packages using GitHub Actions and Podman.
-
-## 📦 Installation
+## Installation
 
 ### From Releases (Recommended)
 
@@ -19,20 +17,7 @@ rmpc-setup
 rmpc
 ```
 
-## 🤖 CI/CD Pipeline
-
-This repository features automated monthly builds:
-
-- **Version Check**: Runs on day 1 of each month at 00:00 UTC
-- **Build & Release**: Runs at 02:00 UTC if new version detected
-- **Manual Trigger**: Available via GitHub Actions workflow dispatch
-
-### Workflows
-
-1. **check-new-version.yml**: Monitors upstream rmpc releases
-2. **build-release.yml**: Builds RPM with Podman and creates GitHub release
-
-## 🛠️ Manual Build
+## Manual Build
 
 ### With Podman (Recommended)
 
@@ -63,7 +48,7 @@ podman build -t rmpc-builder \
   .
 ```
 
-## ✨ Features
+## Features
 
 - **MPD Integration**: Includes MPD (>= 0.23) as dependency
 - **Automated Setup**: `rmpc-setup` script configures everything
@@ -81,7 +66,7 @@ podman build -t rmpc-builder \
 - Configures systemd user service
 - Starts MPD automatically
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 .
@@ -92,7 +77,7 @@ podman build -t rmpc-builder \
 └── Readme.md
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 **MPD not starting:**
 
@@ -115,12 +100,11 @@ mpc update
 mpc ls
 ```
 
-## 📚 Resources
+## Resources
 
 - [rmpc upstream](https://github.com/mierak/rmpc)
 - [MPD Documentation](https://www.musicpd.org/doc/html/)
 
 ---
 
-**Maintainer:** Sassech <<lainstroop@gmail.com>>  
 **Based on:** [rmpc by mierak](https://github.com/mierak/rmpc)
