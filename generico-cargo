@@ -11,7 +11,7 @@ RUN cargo install cargo-rpm
 
 WORKDIR /build
 
-RUN git clone --branch ${BRANCH} ${REPO_URL} app
+RUN git clone --branch ${BRANCH} --depth 1 ${REPO_URL} app
 
 WORKDIR /build/app
 

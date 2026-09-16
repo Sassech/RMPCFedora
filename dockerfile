@@ -10,13 +10,13 @@ RUN dnf install -y \
     && cargo install cargo-rpm
 
 WORKDIR /build
-RUN git clone --branch ${BRANCH} ${REPO_URL} app
-COPY build_rpm.sh /build/app/build_rpm.sh
+RUN git clone --branch ${BRANCH} --depth 1 ${REPO_URL} app
 
 WORKDIR /build/app
-
-RUN chmod +x build_rpm.sh
+COPY rmpc-build/ rmpc-build/
+RUN find rmpc-build -type f -exec chmod +x {} \;
 
 VOLUME ["/output"]
 
-CMD ["bash", "-c", "/build/app/build_rpm.sh"]
+
+CMD ["bash", "-c", "/build/app/rmpc-build/build-rpm.sh"]

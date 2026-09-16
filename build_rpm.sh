@@ -27,7 +27,7 @@ echo "=== Setting up MPD and rmpc for $USER ==="
 MUSIC_DIR="$HOME/Music"
 # mkdir -p "$MUSIC_DIR"
 mkdir -p "$HOME/.config/mpd/playlists"
-echo "✓ Music directory: $MUSIC_DIR"
+echo "[OK] Music directory: $MUSIC_DIR"
 
 # Create necessary directories for MPD
 mkdir -p "$HOME/.config/mpd/playlists"
@@ -63,12 +63,12 @@ audio_output {
     format          "44100:16:2"
 }
 
-# 🔒 Permisos
+# Permisos
 filesystem_charset  "UTF-8"
 CONF
-    echo "✓ MPD configuration created"
+    echo "[OK] MPD configuration created"
 else
-    echo "✓ MPD configuration already exists"
+    echo "[OK] MPD configuration already exists"
 fi
 
 # Create configuration directory for rmpc
@@ -83,28 +83,28 @@ if [ ! -f "$HOME/.config/rmpc/config.ron" ]; then
 #![enable(unwrap_variant_newtypes)]
 (
 
-// 🔹 Conexión a MPD usando FIFO
+// Conexión a MPD usando FIFO
 mpd: (
     method: "fifo",
     path: "/run/user/1000/mpd.fifo", // debe coincidir con MPD
 ),
 
-    // 🔍 Configuración de interfaz
+    // Configuración de interfaz
     show_album_art: true,
     enable_cava: true,
 
-    // ⚡ Comportamiento
+    // Comportamiento
     auto_refresh: true,
     update_interval: 5,
 
-// 🔹 Directorios y cache
+// Directorios y cache
 cache_dir: Some("/tmp/rmpc/cache"), // donde RMPC guarda archivos temporales
 lyrics_dir: Some("~/Music"),         // carpeta raíz de letras
 password: None,
 theme: "catppuccin_mocha",
 
 
-// 🔹 Notificaciones y volumen
+// Notificaciones y volumen
 on_song_change: ["~/.config/rmpc/notify"], 
 volume_step: 5,
 max_fps: 30,
@@ -115,7 +115,7 @@ status_update_interval_ms: 1000,
 select_current_song_on_change: false,
 browser_column_widths: [20, 38, 42],
 
-// 🔹 Configuración de album art
+// Configuración de album art
 album_art: (
     method: Auto,
     max_size_px: (width: 900, height: 900),
@@ -147,7 +147,7 @@ cava: (
     eq: [],// ecualizador, vacío si no se usa
 ),
 
-// 🔹 Keybinds generales
+// Keybinds generales
     keybinds: (
         global: {
             ":":       CommandMode,
@@ -223,7 +223,7 @@ cava: (
             "C":       JumpToCurrent,
         },
     ),
-// 🔹 Configuración de búsqueda
+// Configuración de búsqueda
     search: (
         case_sensitive: false,
         mode: Contains,
@@ -238,12 +238,12 @@ cava: (
         ],
     ),
 
-// 🔹 Configuración de artistas
+// Configuración de artistas
 artists: (
     album_display_mode: SplitByDate, // cómo se agrupan los álbumes
     album_sort_by: Date,             // cómo se ordenan
 ),
-// 🔹 Pestañas principales (tabs)
+// Pestañas principales (tabs)
 tabs: [
     (
         name: "Lyrics", // pestaña de letras
@@ -260,7 +260,7 @@ tabs: [
         pane: Split(
             direction: Horizontal,
             panes: [
-            // 🔹 Columna izquierda: AlbumArt y Lyrics
+            // Columna izquierda: AlbumArt y Lyrics
             (size: "40%", pane: Split(
                 direction: Vertical,
                 panes: [
@@ -268,7 +268,7 @@ tabs: [
                     (size: "40%", pane: Pane(Lyrics)),   // abajo: letras
                 ],
             )),
-            // 🔹 Columna derecha: Queue y Cava
+            // Columna derecha: Queue y Cava
                 (size: "60%", pane: Split(
                     direction: Vertical,
                     panes: [
@@ -298,9 +298,9 @@ tabs: [
 ]
 )
 RMPCCONF
-    echo "✓ Configuración de rmpc creada"
+    echo "[OK] Configuración de rmpc creada"
 else
-    echo "✓ Configuración de rmpc ya existe"
+    echo "[OK] Configuración de rmpc ya existe"
 fi
 
 # Create systemd user service for MPD
@@ -324,7 +324,7 @@ StandardError=journal
 [Install]
 WantedBy=default.target
 SERVICE
-echo "✓ Systemd user service created"
+echo "[OK] Systemd user service created"
 
 # Stop any running MPD instances
 pkill -u "$USER" mpd 2>/dev/null || true
@@ -332,24 +332,24 @@ sleep 1
 
 # Reload systemd user daemon
 systemctl --user daemon-reload
-echo "✓ Systemd reloaded"
+echo "[OK] Systemd reloaded"
 
 # Enable MPD to start automatically
 systemctl --user enable mpd.service
-echo "✓ MPD enabled for automatic start"
+echo "[OK] MPD enabled for automatic start"
 
 # Start MPD
 systemctl --user start mpd.service
-echo "✓ Trying to start MPD..."
+echo "[INFO] Trying to start MPD..."
 
 # Wait a moment for MPD to start
 sleep 2
 
 # Check the status of MPD
 if systemctl --user is-active --quiet mpd.service; then
-    echo "✓ MPD is running correctly"
+    echo "[OK] MPD is running correctly"
 else
-    echo "✗ MPD failed to start. Checking the error..."
+    echo "[ERROR] MPD failed to start. Checking the error..."
     echo ""
     echo "=== MPD Log ==="
     if [ -f "$HOME/.config/mpd/log" ]; then
@@ -369,9 +369,9 @@ fi
 # Enable linger for MPD to start at boot
 if command -v loginctl &> /dev/null; then
     if sudo -n loginctl enable-linger "$USER" 2>/dev/null; then
-        echo "✓ MPD will start automatically at boot"
+        echo "[OK] MPD will start automatically at boot"
     else
-        echo "⚠ Could not enable linger (requires sudo). MPD will only start on login."
+        echo "[WARNING] Could not enable linger (requires sudo). MPD will only start on login."
         echo "  To enable it manually: sudo loginctl enable-linger $USER"
     fi
 fi
@@ -428,9 +428,9 @@ install -m 0755 %{_sourcedir}/rmpc-0.10.0/rmpc-setup %{buildroot}/usr/bin/rmpc-s
 %post
 cat <<MESSAGE
 
-╔════════════════════════════════════════════════════════════╗
-║        rmpc installed successfully                          ║
-╚════════════════════════════════════════════════════════════╝
+============================================================
+        rmpc installed successfully
+============================================================
 
 To set up MPD for your user, run:
 

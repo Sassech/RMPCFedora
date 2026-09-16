@@ -41,14 +41,17 @@ jobs:
             VERSION="${{ inputs.version }}"
             TAG="${{ inputs.tag }}"
           else
-            # Get latest version from RMPC repository
+            # Build from the latest commit on the default branch instead of
+            # the latest published release.
             RMPC_REPO="mierak/rmpc"
-            TAG=$(curl -sL "https://api.github.com/repos/$RMPC_REPO/releases/latest" | jq -r '.tag_name')
-            VERSION=${TAG#v}
+            TAG="master"
+            COMMIT_SHA=$(curl -sL "https://api.github.com/repos/$RMPC_REPO/commits/master" | jq -r '.sha')
+            SHORT_SHA=${COMMIT_SHA:0:7}
+            VERSION="0.$(date -u +%Y%m%d).${SHORT_SHA}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "Building RMPC version: $VERSION (tag: $TAG)"
+          echo "Building RMPC from branch: $TAG (version: $VERSION)"
 
       - name: Build RMPC RPM with Podman
         run: |
@@ -63,6 +66,7 @@ jobs:
           # Run container and extract RPM
           podman run --rm \
             -v $(pwd)/output:/output:Z \
+            -e PKG_VERSION=${{ steps.version.outputs.version }} \
             rmpc-builder
 
       - name: Find built RPM
@@ -99,23 +103,6 @@ jobs:
             ## RMPC RPM for Fedora
 
             Automated build of RMPC version `${{ steps.version.outputs.version }}`
-
-            ### Installation
-            ```bash
-            sudo dnf install ${{ steps.rpm.outputs.rpm_name }}
-            ```
-
-            ### Setup
-            After installation, run the setup script:
-            ```bash
-            rmpc-setup
-            ```
-
-            ### Features
-            - Pre-configured MPD and rmpc setup
-            - PipeWire audio output
-            - FIFO support for visualizers (Cava)
-            - Automatic music directory setup
           files: |
             ${{ steps.rpm.outputs.rpm_file }}
           draft: false

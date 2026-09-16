@@ -1,110 +1,113 @@
 # RMPC RPM Builder for Fedora
 
-## Installation
+Empaqueta [rmpc](https://github.com/mierak/rmpc) como RPM para Fedora, incluyendo un script de configuración automática de MPD como servicio de usuario.
 
-### From Releases (Recommended)
+## Instalación
 
-Download the latest RPM from [Releases](https://github.com/Sassech/RMPCFedora/releases):
+### Desde Releases (Recomendado)
+
+Descarga el último RPM desde [Releases](https://github.com/Sassech/RMPCFedora/releases):
 
 ```bash
-# Install the package
 sudo dnf install ./rmpc-*.rpm
-
-# Configure MPD for your user
 rmpc-setup
-
-# Launch rmpc
 rmpc
 ```
 
-## Manual Build
+## Build Manual
 
-### With Podman (Recommended)
+### Con Podman (Recomendado)
 
 ```bash
-# Build container image
 podman build -t rmpc-builder .
 
-# Run and extract RPM
 mkdir -p output
 podman run --rm -v $(pwd)/output:/output:Z rmpc-builder
 ```
 
-### With Docker
+### Con Docker
 
 ```bash
-# Build and extract
-docker build -t rmpc-rpm .
-docker run --rm -v $(pwd)/output:/output rmpc-rpm
+docker build -t rmpc-builder .
+
+mkdir -p output
+docker run --rm -v $(pwd)/output:/output rmpc-builder
 ```
 
-### Custom Build
+### Variables de entorno
+
+Puedes personalizar el build sin modificar el código:
 
 ```bash
-# Build from specific branch or fork
-podman build -t rmpc-builder \
-  --build-arg REPO_URL=https://github.com/YOUR_FORK/rmpc.git \
-  --build-arg BRANCH=your-branch \
-  .
+podman run --rm \
+  -v $(pwd)/output:/output:Z \
+  -e PKG_VERSION=0.10.0 \
+  -e OUTPUT_DIR=/output \
+  rmpc-builder
 ```
 
-## Features
+| Variable       | Default          | Descripción                     |
+|----------------|------------------|---------------------------------|
+| `PKG_VERSION`  | `0.10.0`         | Versión del paquete             |
+| `RPMBUILD_ROOT`| `/root/rpmbuild` | Directorio de trabajo de rpmbuild |
+| `OUTPUT_DIR`   | `/output`        | Destino del RPM generado        |
 
-- **MPD Integration**: Includes MPD (>= 0.23) as dependency
-- **Automated Setup**: `rmpc-setup` script configures everything
-- **PipeWire Support**: Pre-configured audio output
-- **FIFO Support**: Ready for visualizers (Cava)
-- **Systemd Service**: MPD runs as user service
-- **Custom Config**: Pre-configured rmpc settings
-
-### What rmpc-setup Does
-
-- Creates music directory (`~/Music`)
-- Generates MPD configuration
-- Sets up PipeWire audio output
-- Creates FIFO for visualizers
-- Configures systemd user service
-- Starts MPD automatically
-
-## Project Structure
+## Estructura del Proyecto
 
 ```
 .
-├── .github/workflows/     # CI/CD automation
-├── dockerfile             # Podman/Docker build
-├── build_rpm.sh          # RPM build script
-├── generico-cargo        # Alternative cargo-rpm build
-└── Readme.md
+├── dockerfile
+├── rmpc-build/
+│   ├── build-rpm.sh             # Entrada: orquesta todo y define variables
+│   ├── build-binary.sh          # Compila el binario con cargo
+│   ├── generate-setup.sh        # Genera el script rmpc-setup instalable
+│   ├── generate-spec.sh         # Genera el .spec y ejecuta rpmbuild
+│   └── config/
+│       ├── mpd.conf.tpl         # Template de configuración de MPD
+│       └── rmpc.config.ron.tpl  # Template de configuración de rmpc
+├── .github/workflows/           # CI/CD
+└── README.md
 ```
+
+Los archivos `.tpl` usan `{{placeholders}}` que `rmpc-setup` resuelve con los
+valores reales del usuario en el momento de la instalación (`$HOME`, UID, etc.).
+Para cambiar la configuración por defecto de MPD o rmpc, edita esos archivos.
+
+## Qué hace rmpc-setup
+
+Al ejecutar `rmpc-setup` después de instalar el RPM, el script:
+
+- Crea `~/Music` y los directorios de configuración necesarios
+- Genera `~/.config/mpd/mpd.conf` desde el template con tus rutas reales
+- Genera `~/.config/rmpc/config.ron` desde el template
+- Instala y habilita MPD como servicio systemd de usuario
+- Inicia MPD automáticamente
 
 ## Troubleshooting
 
-**MPD not starting:**
-
+**MPD no arranca:**
 ```bash
 systemctl --user status mpd
 journalctl --user -u mpd -f
 ```
 
-**No audio:**
-
+**Sin audio:**
 ```bash
 systemctl --user status pipewire
 pactl list sinks
 ```
 
-**Update music database:**
-
+**Actualizar base de datos de música:**
 ```bash
 mpc update
 mpc ls
 ```
 
-## Resources
+## Recursos
 
 - [rmpc upstream](https://github.com/mierak/rmpc)
 - [MPD Documentation](https://www.musicpd.org/doc/html/)
 
 ---
 
-**Based on:** [rmpc by mierak](https://github.com/mierak/rmpc)
+Basado en [rmpc by mierak](https://github.com/mierak/rmpc)
